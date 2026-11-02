@@ -1,0 +1,16 @@
+{
+  "name": "mailhub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MailHub 统一邮箱 —— 浏览器插件 + 本地 IMAP/SMTP 中转服务",
+  "type": "module",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "dev": "node --watch server/src/index.js",
+    "setup": "npm --prefix server install",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

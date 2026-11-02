@@ -1,0 +1,9 @@
+# Windows 批处理与 VBS 必须保持 CRLF ——
+# LF 会让 goto 跳转失效、VBS 直接报语法错，而且在 Linux/macOS 上 checkout 的
+# 仓库再拷回去时特别容易中招，所以这里把行尾钉死。
+*.bat text eol=crlf
+*.vbs text eol=crlf
+*.cmd text eol=crlf
+
+# 其余统一 LF：源码原本就是用 LF 编辑的，别让 Git 在 checkout 时改写它们
+* text=auto eol=lf

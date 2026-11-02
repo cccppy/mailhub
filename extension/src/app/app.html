@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>MailHub · 统一邮箱</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <div id="not-configured" class="setup-banner" hidden>
+      <div>
+        <strong id="banner-title">本地服务没连上</strong>
+        <p id="banner-text">双击项目文件夹里的「启动邮箱助手.bat」，等它弹出一个「已就绪」的小网页，再回来点右边的按钮。</p>
+      </div>
+      <button id="btn-reconnect" class="primary">重新连接</button>
+    </div>
+
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo">M</span>
+          <span>MailHub</span>
+        </div>
+        <button id="btn-compose" class="primary">写邮件</button>
+        <div class="search">
+          <input id="search" type="search" placeholder="搜索主题或正文…" autocomplete="off" />
+        </div>
+        <div class="spacer"></div>
+        <span id="app-version" class="ver" title="扩展版本"></span>
+        <button id="btn-refresh" title="刷新当前列表（也可以按 F5）">
+          <span id="refresh-ico" class="ico">⟳</span>
+          <span id="refresh-label">刷新</span>
+        </button>
+        <button id="btn-settings" title="设置">设置</button>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <div class="side-block">
+            <div class="side-title">
+              统一收件箱
+              <span id="total-unread" class="pill" hidden></span>
+            </div>
+            <ul id="account-list" class="nav"></ul>
+            <button id="btn-add-account" class="side-add">＋ 添加邮箱</button>
+          </div>
+          <div class="side-block" id="folder-block" hidden>
+            <div class="side-title">
+              <span id="folder-account-name">文件夹</span>
+            </div>
+            <ul id="folder-list" class="nav"></ul>
+          </div>
+        </aside>
+
+        <section class="list-pane">
+          <div class="list-head">
+            <label class="pick-all" id="pick-all-wrap" title="全选当前列表（再点一次取消）">
+              <input type="checkbox" id="pick-all" />
+            </label>
+            <div id="list-title">统一收件箱</div>
+            <div class="list-head-right">
+              <label class="chk"><input type="checkbox" id="only-unread" /> 仅未读</label>
+              <span id="list-count" class="dim"></span>
+              <button id="btn-list-refresh" class="mini-btn" title="刷新这个列表">⟳</button>
+            </div>
+          </div>
+          <div id="bulk-bar" class="bulk-bar" hidden>
+            <span id="bulk-count" class="bulk-count">已选 0 封</span>
+            <div class="bulk-actions">
+              <button type="button" data-bulk="read">标为已读</button>
+              <button type="button" data-bulk="unread">标为未读</button>
+              <button type="button" data-bulk="flag">加星标</button>
+              <button type="button" data-bulk="unflag">取消星标</button>
+              <button type="button" id="bulk-trash" class="danger">删除</button>
+              <button type="button" id="bulk-clear" class="ghost">取消选择</button>
+            </div>
+          </div>
+          <div id="list-errors" class="errors" hidden></div>
+          <div class="list-scroll">
+            <div id="list-empty" class="list-empty" hidden>
+              <div class="le-icon">📮</div>
+              <h3>还没有添加邮箱</h3>
+              <p>加一个邮箱，所有来信就会自动汇总到这里。</p>
+              <button id="btn-empty-add" class="primary">添加第一个邮箱</button>
+            </div>
+            <ul id="message-list" class="messages"></ul>
+            <div id="list-status" class="list-status"></div>
+            <button id="btn-more" class="more" hidden>加载更多</button>
+          </div>
+        </section>
+
+        <section class="read-pane">
+          <div class="empty" id="read-empty">
+            <div class="empty-icon">✉</div>
+            <p>从中间选一封邮件开始阅读</p>
+          </div>
+
+          <article class="reader" id="reader" hidden>
+            <header class="reader-head">
+              <h1 id="r-subject"></h1>
+              <div class="reader-meta">
+                <div class="avatar" id="r-avatar"></div>
+                <div class="meta-text">
+                  <div class="meta-line">
+                    <span id="r-from" class="strong"></span>
+                    <span id="r-date" class="dim"></span>
+                  </div>
+                  <div id="r-to" class="dim small"></div>
+                </div>
+                <span class="acct-chip" id="r-account"></span>
+              </div>
+              <div class="reader-actions">
+                <button id="r-reply" class="primary">回复</button>
+                <button id="r-forward">转发</button>
+                <button id="r-images" hidden>显示远程图片</button>
+                <button id="r-unread">标记未读</button>
+                <button id="r-flag">加星标</button>
+                <button id="r-delete" class="danger">删除</button>
+              </div>
+              <div class="attachments" id="r-attachments" hidden></div>
+            </header>
+            <div class="reader-body">
+              <iframe
+                id="r-frame"
+                title="邮件正文"
+                sandbox="allow-popups allow-popups-to-escape-sandbox"
+                referrerpolicy="no-referrer"
+              ></iframe>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal" id="compose-modal" hidden>
+      <div class="modal-card">
+        <header class="modal-head">
+          <span id="c-title">写邮件</span>
+          <button id="c-close" class="icon" title="关闭">×</button>
+        </header>
+        <div class="modal-body">
+          <div class="field">
+            <label for="c-account">发件账户</label>
+            <select id="c-account"></select>
+          </div>
+          <div class="field">
+            <label for="c-to">收件人</label>
+            <input id="c-to" placeholder="多个地址用逗号分隔" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="c-cc">抄送</label>
+            <input id="c-cc" placeholder="可留空" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="c-subject">主题</label>
+            <input id="c-subject" autocomplete="off" />
+          </div>
+          <textarea id="c-body" spellcheck="false"></textarea>
+        </div>
+        <footer class="modal-foot">
+          <button id="c-send" class="primary">发送</button>
+          <span id="c-status" class="dim"></span>
+        </footer>
+      </div>
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>邮箱助手 · 设置</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="page-head">
+        <h1>邮箱助手</h1>
+        <div id="conn-bar" class="conn-bar waiting">
+          <span class="bar-dot"></span>
+          <span id="conn-text">正在检查本地服务…</span>
+          <button id="btn-reconnect" class="tiny">重新连接</button>
+        </div>
+      </header>
+
+      <section class="card">
+        <h2>添加一个邮箱</h2>
+
+        <div class="chips" id="provider-chips" role="radiogroup" aria-label="邮箱类型"></div>
+
+        <div class="grid">
+          <label for="email">邮箱地址</label>
+          <input id="email" placeholder="选好品牌后这里会给出例子" autocomplete="off" spellcheck="false" />
+
+          <label for="authCode">授权码</label>
+          <input
+            id="authCode"
+            type="password"
+            placeholder="不是登录密码，是邮箱后台单独生成的那串"
+            autocomplete="off"
+          />
+        </div>
+
+        <p id="provider-hint" class="hint"></p>
+
+        <details id="custom-box" hidden>
+          <summary>自定义服务器参数</summary>
+          <div class="grid two-col">
+            <label for="imapHost">IMAP 服务器</label>
+            <input id="imapHost" placeholder="imap.example.com" autocomplete="off" />
+            <label for="imapPort">IMAP 端口</label>
+            <input id="imapPort" type="number" value="993" />
+            <label for="smtpHost">SMTP 服务器</label>
+            <input id="smtpHost" placeholder="smtp.example.com" autocomplete="off" />
+            <label for="smtpPort">SMTP 端口</label>
+            <input id="smtpPort" type="number" value="465" />
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="btn-add" class="primary big">保存并测试</button>
+          <span id="add-status" class="status"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>我的邮箱</h2>
+        <ul id="account-list" class="accounts"></ul>
+        <p id="accounts-empty" class="hint">还没有邮箱，上面加一个就能用了。</p>
+        <div class="actions">
+          <button id="btn-open-app" class="ghost">打开统一收件箱</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>邮件里的图片</h2>
+        <p class="lead-switch">
+          邮件正文里的图，大多数是发件人放在自家服务器上的，打开邮件时才会从网上抓回来。
+          这也意味着——只要图片一加载，对方就知道你已经读过这封信了。下面是你的选择，默认「直接显示」。
+        </p>
+
+        <div class="radio-group" role="radiogroup" aria-labelledby="img-mode-label">
+          <span id="img-mode-label" class="visually-hidden">远程图片加载方式</span>
+
+          <label class="radio-row">
+            <input type="radio" name="image-mode" value="allow" checked />
+            <span class="radio-text">
+              <strong>全部直接显示</strong>
+              <em>默认。邮件打开就是完整的图文，不用为每封信点一遍。代价是发件人能知道你什么时候读了信。</em>
+            </span>
+          </label>
+
+          <label class="radio-row">
+            <input type="radio" name="image-mode" value="block" />
+            <span class="radio-text">
+              <strong>先拦住，需要时再点开</strong>
+              <em>更注重隐私。正文里的图会显示成灰色虚线框，看的时候点一下「显示远程图片」放行即可。</em>
+            </span>
+          </label>
+        </div>
+
+        <p class="hint">
+          这个选择是全局的，改完立刻生效，不用重开收件箱。阅读区那个「隐藏远程图片」按钮点一下，也会同步改这里。
+        </p>
+      </section>
+
+      <details class="card advanced">
+        <summary>高级设置（一般不用动）</summary>
+        <div class="grid">
+          <label for="serverUrl">服务地址</label>
+          <input id="serverUrl" placeholder="http://127.0.0.1:8787" autocomplete="off" />
+
+          <label for="token">访问令牌</label>
+          <input id="token" placeholder="点上面的「重新连接」会自动填好" autocomplete="off" />
+        </div>
+        <p class="hint">
+          这两项正常情况下会自动填好，你不用管。只有当本地服务换了端口、或者装在另一台电脑上时才需要改。
+        </p>
+        <div class="actions">
+          <button id="btn-save">保存连接设置</button>
+          <span id="conn-status" class="status"></span>
+        </div>
+      </details>
+
+      <p class="foot-note">
+        邮箱授权码会用 AES-256 加密后保存在你本机的 <code>server/data</code> 目录里，不经过任何第三方服务器。
+        想彻底删掉，在下面「我的邮箱」里点删除即可。
+      </p>
+    </div>
+
+    <div class="toasts" id="toasts"></div>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
