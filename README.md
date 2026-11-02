@@ -4,6 +4,8 @@
 
 左侧是账户与文件夹，中间是合并后的邮件列表，右侧直接读信、回信、发信 —— 不用再在五六个网页标签之间来回切换。
 
+![MailHub 主界面](docs/screenshots/main.png)
+
 ---
 
 ## 为什么需要一个本地服务？
@@ -75,8 +77,11 @@ email-hub/
 ├── tools/
 │   ├── make-icons.mjs          纯手工生成 PNG 图标（无第三方依赖）
 │   ├── write-host.js           按当前文件夹算出宿主清单（绝对路径 + 扩展 ID）
+│   ├── gen-shots.mjs           生成下面那些界面截图：套真实的 CSS + 假数据，用 Edge 无头模式截
 │   └── gen-bat.py              生成所有 .bat / .vbs / 宿主清单。为什么用 Python：bat 必须 CRLF + GBK，
 │                               宿主清单必须 UTF-8 无 BOM，三者要求冲突，只能按字节写
+├── docs/screenshots/           README 里的界面图（演示数据，不含真实邮件）
+├── .gitattributes
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -126,6 +131,8 @@ email-hub/
 4. 点「保存并测试」
 
 就这样，没有第 5 步。服务地址和访问令牌会自动领好，不用你复制粘贴。
+
+<img src="docs/screenshots/settings.png" alt="设置页：选好品牌、填地址和授权码，点保存并测试" width="620">
 
 加完第一个邮箱会自动跳到收件箱，多个邮箱的邮件已经合并在一起了。
 
@@ -213,6 +220,10 @@ email-hub/
 - **批量管理**：列表左侧可以勾选邮件，支持 Shift 连选一段、`Ctrl+A` 全选（光标在输入框里时不会抢）、`Esc` 取消。选中后底部会浮出一条操作栏，可以一次对几十封改已读 / 未读 / 加星 / 取消星 / 删除
 - **搜索**：在收件箱里按关键词搜主题和正文（走服务端 IMAP SEARCH）
 - **未读角标**：插件图标上显示汇总未读数，每 5 分钟自动刷新
+
+| 勾选后浮出批量操作栏 | 写邮件 |
+| :---: | :---: |
+| ![批量操作](docs/screenshots/bulk.png) | ![写邮件](docs/screenshots/compose.png) |
 
 ### 关于删除的两级语义
 

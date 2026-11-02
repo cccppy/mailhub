@@ -29,3 +29,6 @@ desktop.ini
 # 临时
 *.log
 tmp/
+
+# 截图脚本的中间目录（gen-shots.mjs 跑完自己会删，这里是兜底）
+.shots/

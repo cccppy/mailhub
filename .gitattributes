@@ -5,5 +5,8 @@
 *.vbs text eol=crlf
 *.cmd text eol=crlf
 
+# 文档里的截图是二进制，明确告诉 Git 别碰它
+*.png binary
+
 # 其余统一 LF：源码原本就是用 LF 编辑的，别让 Git 在 checkout 时改写它们
 * text=auto eol=lf
