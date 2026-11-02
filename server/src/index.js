@@ -10,7 +10,7 @@ import eventsRouter from './routes/events.js';
 import { stopIdle } from './mail/idle.js';
 import { friendlyMessage } from './util.js';
 
-const VERSION = '1.1.7';
+const VERSION = '1.1.8';
 const app = express();
 const baseUrl = `http://${bindHost === '0.0.0.0' ? '127.0.0.1' : bindHost}:${port}`;
 

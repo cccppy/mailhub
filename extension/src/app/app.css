@@ -113,6 +113,18 @@ input:focus, select:focus, textarea:focus {
   overflow: hidden;
 }
 
+/* 窗口不宽的时候，侧栏和列表主动让位给正文。
+   原来三列都是死宽度，900px 的窗口里正文只剩两百多像素，一屏字挤成一小条，
+   标题和按钮跟着折行，把正文区的高度也一起吃掉。侧栏不能整个藏起来
+   （账号列表在里面），只收窄。 */
+@media (max-width: 1180px) {
+  .layout { grid-template-columns: 200px minmax(240px, 300px) minmax(320px, 1fr); }
+}
+@media (max-width: 940px) {
+  .layout { grid-template-columns: 176px minmax(220px, 260px) minmax(300px, 1fr); }
+  .sidebar { padding: 10px 8px; }
+}
+
 /* ---------- 侧栏 ---------- */
 .sidebar {
   background: var(--panel);
@@ -325,10 +337,15 @@ button.busy { color: var(--accent); border-color: var(--accent); }
 }
 .empty-icon { font-size: 40px; opacity: 0.35; }
 
-.reader { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.reader { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* 标题栏原来写的是 flex: none（绝不收缩）。窗口一窄，标题换行、meta 换行、
+   六个操作按钮折成两三行，这块的总高能顶到三四百像素，于是 flex:1 的正文区
+   被压成 0 —— 正文 HTML 明明已经写进 iframe，屏幕上却是一片空白。
+   现在改成「可以让步」：空间不够时自己缩、自己滚，正文区有保底高度。 */
 .reader-head {
   background: var(--panel); border-bottom: 1px solid var(--border);
-  padding: 16px 20px 12px; flex: none;
+  padding: 16px 20px 12px;
+  flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
 }
 .reader-head h1 { margin: 0 0 12px; font-size: 18px; line-height: 1.4; }
 .reader-meta { display: flex; align-items: center; gap: 10px; }
@@ -370,9 +387,10 @@ button.busy { color: var(--accent); border-color: var(--accent); }
 /* 正文区：绝对定位的 iframe 填满容器。
    不再靠 flex/百分比高度一路继承 —— 只要这块容器有高度，正文就一定有高度，
    任何一个中间层被挤扁都不会再出现「看起来一片空白」。
+   min-height 是最后一道保底：上面标题栏再怎么长，这块也不会缩到 0。
    （曾经这里还叠着一层纯文本兜底，靠 2.2 秒定时器触发。定时器已拆掉：它只能说明
    图还没加载完，而图还没加载完是最正常的情况，跟渲染失败不是一回事。） */
-.reader-body { flex: 1; min-height: 0; padding: 0; overflow: hidden; position: relative; background: #fff; }
+.reader-body { flex: 1 1 auto; min-height: 160px; padding: 0; overflow: hidden; position: relative; background: #fff; }
 #r-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; display: block; }
 
 /* ---------- 写邮件弹窗 ---------- */
