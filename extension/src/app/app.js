@@ -6,6 +6,7 @@ import {
   fetchAttachment,
   saveBlob,
   connectHint,
+  openEventStream,
 } from '../lib/api.js';
 import { buildEmailDocument, countRemoteImages } from '../lib/sanitize.js';
 import {
@@ -1019,6 +1020,102 @@ async function deleteMessage() {
 
 let composeMode = 'new';
 
+/** 待发附件：{ filename, contentType, size, contentBase64 } */
+let composeFiles = [];
+
+/** 与 server/src/mail/smtp.js 的 ATTACH_TOTAL_MAX 保持一致，提前拦住，不用等传完再报错 */
+const ATTACH_TOTAL_MAX = 16 * 1024 * 1024;
+
+function attachTotal() {
+  return composeFiles.reduce((n, f) => n + f.size, 0);
+}
+
+function renderAttachList() {
+  const list = $('c-attach-list');
+  list.textContent = '';
+
+  composeFiles.forEach((f, i) => {
+    const li = document.createElement('li');
+    li.className = 'attach-item';
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = f.filename;
+    name.title = f.filename;
+
+    const size = document.createElement('span');
+    size.className = 'size';
+    size.textContent = formatSize(f.size);
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'del';
+    del.textContent = '×';
+    del.title = '移除这个附件';
+    del.addEventListener('click', () => {
+      composeFiles.splice(i, 1);
+      renderAttachList();
+    });
+
+    li.append(name, size, del);
+    list.appendChild(li);
+  });
+
+  $('c-attach-hint').textContent = composeFiles.length
+    ? `共 ${composeFiles.length} 个，合计 ${formatSize(attachTotal())}`
+    : '可选，合计不超过 16 MB';
+}
+
+/** 读成 base64（去掉 data: 前缀，只留数据本体） */
+function readAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const s = String(reader.result || '');
+      const comma = s.indexOf(',');
+      resolve(comma >= 0 ? s.slice(comma + 1) : '');
+    };
+    reader.onerror = () => reject(new Error('读取失败'));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * 收下用户选的文件。
+ * 超限的跳过并且报出来 —— 不静默丢弃，否则用户会以为发出去了。
+ */
+async function addComposeFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  let total = attachTotal();
+  const skipped = [];
+
+  for (const file of files) {
+    if (total + file.size > ATTACH_TOTAL_MAX) {
+      skipped.push(file.name);
+      continue;
+    }
+    try {
+      const contentBase64 = await readAsBase64(file);
+      composeFiles.push({
+        filename: file.name,
+        contentType: file.type || '',
+        size: file.size,
+        contentBase64,
+      });
+      total += file.size;
+    } catch {
+      skipped.push(file.name);
+    }
+  }
+
+  renderAttachList();
+  if (skipped.length) {
+    toast(`这些没加上，合计会超过 16 MB：${skipped.join('、')}`, 'error');
+  }
+}
+
 function renderComposeAccounts(preferId) {
   const sel = $('c-account');
   const current = preferId || sel.value || (state.messages.find((m) => msgKey(m) === state.selectedKey) || {}).accountId;
@@ -1040,6 +1137,11 @@ function openCompose(mode = 'new', ctx = {}) {
   composeMode = mode;
   const title = mode === 'reply' ? '回复' : mode === 'forward' ? '转发' : '写邮件';
   $('c-title').textContent = title;
+
+  // 每次打开都是一封新邮件，不带上次留下的附件
+  composeFiles = [];
+  renderAttachList();
+  $('c-file').value = '';
 
   renderComposeAccounts(ctx.accountId);
 
@@ -1087,7 +1189,9 @@ async function sendCompose() {
 
   const btn = $('c-send');
   btn.disabled = true;
-  $('c-status').textContent = '正在发送…';
+  $('c-status').textContent = composeFiles.length
+    ? `正在上传 ${composeFiles.length} 个附件并发送…`
+    : '正在发送…';
 
   const d = composeMode !== 'new' ? state.detail : null;
   const payload = {
@@ -1097,6 +1201,13 @@ async function sendCompose() {
     subject: $('c-subject').value.trim() || '(无主题)',
     text: $('c-body').value,
   };
+  if (composeFiles.length) {
+    payload.attachments = composeFiles.map((f) => ({
+      filename: f.filename,
+      contentType: f.contentType || undefined,
+      contentBase64: f.contentBase64,
+    }));
+  }
   if (composeMode === 'reply' && d) {
     if (d.messageId) payload.inReplyTo = d.messageId;
     const refs = [].concat(d.references || []);
@@ -1117,6 +1228,97 @@ async function sendCompose() {
   }
 }
 
+/* ============================ 新邮件实时推送 ============================ */
+
+let liveStream = null;
+let streamOpen = false;
+/** 每个账户的 IDLE 状态，来自服务端的 status 事件 */
+let liveAccounts = [];
+
+function renderLiveDot() {
+  const el = $('live-dot');
+  if (!el) return;
+
+  if (!streamOpen) {
+    el.hidden = true;
+    return;
+  }
+
+  el.hidden = false;
+  const bad = liveAccounts.filter((a) => a.state === 'error');
+  const ok = liveAccounts.filter((a) => a.state === 'live').length;
+  el.classList.toggle('warn', bad.length > 0);
+
+  if (bad.length) {
+    const names = bad.map((a) => a.label || a.accountId).join('、');
+    el.title = `${names} 的实时推送断了，正在自动重连；列表照常可以手动刷新`;
+  } else if (ok) {
+    el.title = `${ok} 个邮箱已连上，新邮件会实时出现在列表里`;
+  } else {
+    el.title = '正在连接各个邮箱…';
+  }
+}
+
+/** 新邮件到达：提示一下，再把列表刷掉 */
+function onPushMail(data) {
+  const msgs = Array.isArray(data && data.messages) ? data.messages : [];
+  const first = msgs[0];
+  const total = Number(data && data.count) || msgs.length;
+
+  let who = (data && data.accountLabel) || '';
+  let subj = '';
+  if (first) {
+    const f = firstAddress(first.from);
+    who = f.name || f.address || who;
+    subj = first.subject || '(无主题)';
+  }
+  const more = total > 1 ? `（共 ${total} 封）` : '';
+  toast(`新邮件 · ${who}${subj ? `：${subj}` : ''}${more}`, 'ok');
+
+  // 角标立刻跟上，不用等那个 5 分钟的定时任务
+  chrome.runtime.sendMessage({ type: 'refresh-badge' }).catch(() => {});
+
+  // 只有在看收件箱、没在搜索、也没在写信的时候才自动刷新，
+  // 否则会把用户正看着的东西换掉
+  const onInbox = state.view.mailbox === 'INBOX';
+  if (onInbox && !state.view.q && $('compose-modal').hidden) {
+    pushRefresh();
+  }
+}
+
+/** 连到来新邮件就刷一次，但别一封一封地刷 */
+const pushRefresh = debounce(() => loadList({ reset: true, busyText: '' }), 600);
+
+function startLiveStream() {
+  if (liveStream) return;
+
+  liveStream = openEventStream({
+    onStatus(state) {
+      streamOpen = state === 'open';
+      if (!streamOpen) liveAccounts = [];
+      renderLiveDot();
+    },
+    onEvent(event, data) {
+      if (event === 'status') {
+        liveAccounts = Array.isArray(data && data.accounts) ? data.accounts : [];
+        renderLiveDot();
+      } else if (event === 'mail') {
+        onPushMail(data);
+      }
+    },
+  });
+}
+
+/** 页面要关了就把推送通道收掉，服务端那边也会跟着断开所有常驻连接 */
+window.addEventListener('pagehide', () => {
+  if (liveStream) {
+    liveStream.close();
+    liveStream = null;
+    streamOpen = false;
+    renderLiveDot();
+  }
+});
+
 /* ============================ 初始化 ============================ */
 
 function openOptions() {
@@ -1132,6 +1334,13 @@ function bindEvents() {
   $('btn-add-account').addEventListener('click', openOptions);
   $('btn-empty-add').addEventListener('click', openOptions);
   $('btn-reconnect').addEventListener('click', reconnect);
+
+  $('btn-attach').addEventListener('click', () => $('c-file').click());
+  $('c-file').addEventListener('change', (e) => {
+    addComposeFiles(e.target.files);
+    // 清空，这样同一个文件可以再选一次（比如移除之后想加回来）
+    e.target.value = '';
+  });
 
   $('search').addEventListener(
     'input',
@@ -1259,6 +1468,9 @@ async function boot() {
       stopRetry();
       stopRetry = null;
     }
+    // 列表先出来，再挂实时推送：推送连上只是个加分项，
+    // 连不上也不该影响先把邮件看到
+    startLiveStream();
   } catch (err) {
     showBanner(
       '有点问题',

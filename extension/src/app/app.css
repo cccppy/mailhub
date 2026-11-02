@@ -403,6 +403,38 @@ button.busy { color: var(--accent); border-color: var(--accent); }
   padding: 12px 18px; border-top: 1px solid var(--border); background: var(--panel-2);
 }
 
+/* ---------- 附件 ---------- */
+.attach-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.attach-title { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
+.attach-head .dim { font-size: 12px; }
+.attach-btn { justify-self: start; font-size: 12.5px; padding: 5px 11px; }
+.attach-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.attach-list:empty { display: none; }
+.attach-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 9px; border-radius: 8px;
+  background: var(--panel-2); border: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.attach-item .name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attach-item .size { flex: none; color: var(--text-mute); font-variant-numeric: tabular-nums; }
+.attach-item .del {
+  flex: none; padding: 0 4px; font-size: 14px; line-height: 1;
+  background: transparent; border-color: transparent; color: var(--text-mute);
+}
+.attach-item .del:hover { background: transparent; border-color: transparent; color: var(--danger); }
+
+/* 顶栏的实时推送指示灯：连上才显示，断开自动藏起来 */
+.live {
+  display: block; width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: #1a7f47; box-shadow: 0 0 0 3px rgba(26, 127, 71, 0.14);
+}
+.live.warn { background: var(--text-mute); box-shadow: 0 0 0 3px rgba(139, 148, 158, 0.16); }
+
+
 /* ---------- 提示条 ---------- */
 .toasts {
   position: fixed; right: 20px; bottom: 20px; z-index: 80;

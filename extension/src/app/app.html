@@ -25,6 +25,7 @@
           <input id="search" type="search" placeholder="搜索主题或正文…" autocomplete="off" />
         </div>
         <div class="spacer"></div>
+        <span id="live-dot" class="live" hidden></span>
         <span id="app-version" class="ver" title="扩展版本"></span>
         <button id="btn-refresh" title="刷新当前列表（也可以按 F5）">
           <span id="refresh-ico" class="ico">⟳</span>
@@ -155,6 +156,15 @@
             <input id="c-subject" autocomplete="off" />
           </div>
           <textarea id="c-body" spellcheck="false"></textarea>
+          <div class="field">
+            <div class="attach-head">
+              <span class="attach-title">附件</span>
+              <span id="c-attach-hint" class="dim"></span>
+            </div>
+            <input id="c-file" type="file" multiple hidden />
+            <button type="button" id="btn-attach" class="attach-btn">＋ 添加附件</button>
+            <ul id="c-attach-list" class="attach-list"></ul>
+          </div>
         </div>
         <footer class="modal-foot">
           <button id="c-send" class="primary">发送</button>

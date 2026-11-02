@@ -6,9 +6,11 @@ import { port, bindHost, allowedOrigins, authToken, dataDir } from './config.js'
 import accountsRouter from './routes/accounts.js';
 import messagesRouter from './routes/messages.js';
 import sendRouter from './routes/send.js';
+import eventsRouter from './routes/events.js';
+import { stopIdle } from './mail/idle.js';
 import { friendlyMessage } from './util.js';
 
-const VERSION = '1.1.6';
+const VERSION = '1.1.7';
 const app = express();
 const baseUrl = `http://${bindHost === '0.0.0.0' ? '127.0.0.1' : bindHost}:${port}`;
 
@@ -129,6 +131,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/accounts', accountsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api', sendRouter);
+app.use('/api', eventsRouter);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: `接口不存在：${req.method} ${req.originalUrl}` });
@@ -231,3 +234,25 @@ server.on('error', (err) => {
   }
   throw err;
 });
+
+/* ------------------------------------------------------------------ */
+/* 退出清理                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 实时推送给每个邮箱维持着一条常驻连接，正常退出时得把它们 logout 掉。
+ * 直接 process.exit() 会让服务器那边留下一堆「假在线」，短时间内重连容易被拒。
+ */
+let closing = false;
+function shutdown(signal) {
+  if (closing) return;
+  closing = true;
+  stopIdle();
+  server.close(() => process.exit(0));
+  // close() 会等长连接自己断，这里最多等 3 秒就走人
+  setTimeout(() => process.exit(0), 3000).unref();
+  if (signal) console.log(`  收到 ${signal}，已断开实时推送连接。`);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

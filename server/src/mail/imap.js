@@ -16,7 +16,7 @@ export function resolveAccount(accountId) {
   return { ...acct, secret: decrypt(acct.secretEnc) };
 }
 
-export function clientFor(acct) {
+export function clientFor(acct, overrides = {}) {
   return new ImapFlow({
     host: acct.imap.host,
     port: acct.imap.port,
@@ -26,6 +26,7 @@ export function clientFor(acct) {
     logger: false,
     greetingTimeout: 15000,
     socketTimeout: 60000,
+    ...overrides,
   });
 }
 
@@ -100,7 +101,7 @@ function hasAttachment(node) {
   return false;
 }
 
-function mapListItem(msg) {
+export function mapListItem(msg) {
   const env = msg.envelope || {};
   const date = env.date || msg.internalDate;
   return {

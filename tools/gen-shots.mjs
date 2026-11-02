@@ -109,7 +109,8 @@ function appPage({ picked = [], bulk = false, modal = false } = {}) {
     <button class="primary">写邮件</button>
     <div class="search"><input type="search" placeholder="搜索主题或正文…"></div>
     <div class="spacer"></div>
-    <span class="ver">v1.1.6</span>
+    <span class="live" title="新邮件实时推送已连接"></span>
+    <span class="ver">v1.1.7</span>
     <button><span class="ico">⟳</span>刷新</button>
     <button>设置</button>
   </header>
@@ -186,6 +187,17 @@ function composeModal() {
 行程表我收到了，11 月 9 日上午的时间没问题。专线那部分我这边先出一版初步方案，周一见面时一起过一遍。
 
 另外想问一下，机房那边是否方便提前安排一次现场勘查？</textarea>
+    <div class="field">
+      <div class="attach-head">
+        <span class="attach-title">附件</span>
+        <span class="dim">共 2 个，合计 184.0 KB</span>
+      </div>
+      <button type="button" class="attach-btn">＋ 添加附件</button>
+      <ul class="attach-list">
+        <li class="attach-item"><span class="name">专线初步方案-v1.docx</span><span class="size">168.0 KB</span><button class="del">×</button></li>
+        <li class="attach-item"><span class="name">机房勘查要点.txt</span><span class="size">16.0 KB</span><button class="del">×</button></li>
+      </ul>
+    </div>
   </div>
   <footer class="modal-foot"><button class="primary">发送</button><span class="dim"></span></footer>
 </div></div>`;
@@ -233,7 +245,7 @@ function optionsPage() {
 const SHOTS = [
   { file: 'main.png', html: appPage(), size: '1400,880' },
   { file: 'bulk.png', html: appPage({ picked: [0, 1, 3], bulk: true }), size: '1400,880' },
-  { file: 'compose.png', html: appPage({ modal: true }), size: '1400,880' },
+  { file: 'compose.png', html: appPage({ modal: true }), size: '1400,960' },
   { file: 'settings.png', html: optionsPage(), size: '980,1120' },
 ];
 

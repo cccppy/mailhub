@@ -188,6 +188,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     ensureService().then((ok) => sendResponse({ ok }));
     return true;
   }
+  // 页面通过实时推送收到新邮件时，让角标立刻跟上，不用等 5 分钟的定时任务
+  if (msg && msg.type === 'refresh-badge') {
+    updateBadge().then(() => sendResponse({ ok: true }));
+    return true;
+  }
   return false;
 });
 

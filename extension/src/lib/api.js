@@ -303,3 +303,108 @@ export function saveBlob(blob, filename) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
+
+/* ---------------- 新邮件实时推送 ---------------- */
+
+/**
+ * 打开 /api/events 的推送通道（SSE）。
+ *
+ * 不用原生 EventSource，因为它不能带自定义请求头——令牌只能塞进 URL，
+ * 而 URL 会被服务端的诊断日志原样记下来。这里改用 fetch 读流，自己拆 SSE 帧，
+ * 令牌照旧走 Authorization 头。
+ *
+ * 返回 { close() }。断流后会自动重连，间隔从 3 秒翻倍到 30 秒封顶。
+ *
+ * @param {{
+ *   onEvent?: (event: string, data: any) => void,
+ *   onStatus?: (state: 'open' | 'closed') => void,
+ * }} handlers
+ */
+export function openEventStream({ onEvent, onStatus } = {}) {
+  let closed = false;
+  let retryTimer = null;
+  let retry = 0;
+  let controller = null;
+
+  function handleFrame(chunk) {
+    let event = 'message';
+    const data = [];
+
+    for (const line of chunk.split('\n')) {
+      // 空行和以冒号开头的注释（心跳）直接跳过
+      if (!line || line.startsWith(':')) continue;
+      const i = line.indexOf(':');
+      const field = i < 0 ? line : line.slice(0, i);
+      let value = i < 0 ? '' : line.slice(i + 1);
+      if (value.startsWith(' ')) value = value.slice(1);
+      if (field === 'event') event = value;
+      else if (field === 'data') data.push(value);
+    }
+
+    if (!data.length) return;
+    let payload = null;
+    try {
+      payload = JSON.parse(data.join('\n'));
+    } catch {
+      return;
+    }
+    if (onEvent) onEvent(event, payload);
+  }
+
+  async function run() {
+    if (closed) return;
+
+    const { serverUrl, token } = await getConfig();
+    controller = new AbortController();
+
+    try {
+      const res = await fetch(`${serverUrl}/api/events`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+
+      retry = 0;
+      if (onStatus) onStatus('open');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        // 统一成 \n，省得为 \r\n 再写一套判断
+        buf += decoder.decode(value, { stream: true }).replace(/\r\n?/g, '\n');
+
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) >= 0) {
+          handleFrame(buf.slice(0, idx));
+          buf = buf.slice(idx + 2);
+        }
+      }
+    } catch {
+      /* 断流、服务没起来、页面正在关闭——都走下面的重连 */
+    }
+
+    if (closed) return;
+    if (onStatus) onStatus('closed');
+
+    const delay = Math.min(3000 * 2 ** retry, 30000);
+    retry += 1;
+    retryTimer = setTimeout(run, delay);
+  }
+
+  run();
+
+  return {
+    close() {
+      closed = true;
+      clearTimeout(retryTimer);
+      if (controller) controller.abort();
+      if (onStatus) onStatus('closed');
+    },
+  };
+}

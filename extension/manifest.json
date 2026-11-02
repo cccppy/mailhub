@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MailHub 统一邮箱",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "把 QQ 邮箱、139 邮箱、163/126 等多家邮箱聚合到同一个界面里统一收发邮件。",
   "minimum_chrome_version": "116",
   "permissions": ["storage", "alarms", "nativeMessaging"],
